@@ -29,6 +29,12 @@ gcc view.c -o view -lSDL2 -lm $(sdl2-config --cflags --libs); ./simulation | ./v
 #define ROD_LENGTH_SCALE 100.0f  // Pixels per meter
 #define MAX_DATA_LINES 1000      // Maximum number of data lines to store
 
+#define LEG_WIDTH 20        // Width of the leg segments
+#define KNEE_RADIUS 8       // Radius of the knee joint
+#define HIP_RADIUS 10       // Radius of the hip joint
+#define FOOT_LENGTH 40      // Length of the foot
+#define FOOT_HEIGHT 10      // Height of the foot
+
 // Structure to hold one line of simulation data
 typedef struct {
     double prev_theta1;
@@ -127,32 +133,159 @@ void render_simulation(int frame) {
     SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255); // Dark grey background
     SDL_RenderClear(renderer);
 
-    // Define the origin point (fixed joint)
+    // Define the origin point (hip joint)
     int origin_x = SCREEN_WIDTH / 2;
     int origin_y = SCREEN_HEIGHT / 2;
 
-    // Calculate positions based on angles (using end_theta values)
-    int joint2_x = origin_x + (int)(ROD_LENGTH_SCALE * L1 * sin(current->end_theta1));
-    int joint2_y = origin_y - (int)(ROD_LENGTH_SCALE * L1 * cos(current->end_theta1));
+    // Calculate joint positions based on angles
+    int knee_x = origin_x + (int)(ROD_LENGTH_SCALE * L1 * sin(current->end_theta1));
+    int knee_y = origin_y - (int)(ROD_LENGTH_SCALE * L1 * cos(current->end_theta1));
     
-    int end_x = joint2_x + (int)(ROD_LENGTH_SCALE * L2 * sin(current->end_theta1 + current->end_theta2));
-    int end_y = joint2_y - (int)(ROD_LENGTH_SCALE * L2 * cos(current->end_theta1 + current->end_theta2));
+    int ankle_x = knee_x + (int)(ROD_LENGTH_SCALE * L2 * sin(current->end_theta1 + current->end_theta2));
+    int ankle_y = knee_y - (int)(ROD_LENGTH_SCALE * L2 * cos(current->end_theta1 + current->end_theta2));
 
-    // Draw rods
-    SDL_SetRenderDrawColor(renderer, 200, 200, 50, 255); // First rod: yellowish
-    SDL_RenderDrawLine(renderer, origin_x, origin_y, joint2_x, joint2_y);
+    // Calculate angles for drawing the leg segments
+    float thigh_angle = current->end_theta1;
+    float shin_angle = current->end_theta1 + current->end_theta2;
     
-    SDL_SetRenderDrawColor(renderer, 50, 200, 200, 255); // Second rod: bluish
-    SDL_RenderDrawLine(renderer, joint2_x, joint2_y, end_x, end_y);
-
-    // Draw joints as small red circles
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red
-    for (int i = -4; i <= 4; i++) {
-        for (int j = -4; j <= 4; j++) {
-            if (i*i + j*j <= 16) { // Circle with radius 4
+    // Calculate the vertices for the thigh (upper leg)
+    SDL_Point thigh_points[4];
+    // Half width perpendicular to the thigh angle
+    int half_width = LEG_WIDTH / 2;
+    
+    // Calculate perpendicular offsets to the thigh line
+    int dx_perp = (int)(half_width * cos(thigh_angle));
+    int dy_perp = (int)(half_width * sin(thigh_angle));
+    
+    // Four corners of the thigh rectangle
+    thigh_points[0].x = origin_x - dx_perp;
+    thigh_points[0].y = origin_y + dy_perp;
+    
+    thigh_points[1].x = origin_x + dx_perp;
+    thigh_points[1].y = origin_y - dy_perp;
+    
+    thigh_points[2].x = knee_x + dx_perp;
+    thigh_points[2].y = knee_y - dy_perp;
+    
+    thigh_points[3].x = knee_x - dx_perp;
+    thigh_points[3].y = knee_y + dy_perp;
+    
+    // Calculate the vertices for the shin (lower leg)
+    SDL_Point shin_points[4];
+    
+    // Calculate perpendicular offsets to the shin line
+    dx_perp = (int)(half_width * cos(shin_angle));
+    dy_perp = (int)(half_width * sin(shin_angle));
+    
+    // Four corners of the shin rectangle
+    shin_points[0].x = knee_x - dx_perp;
+    shin_points[0].y = knee_y + dy_perp;
+    
+    shin_points[1].x = knee_x + dx_perp;
+    shin_points[1].y = knee_y - dy_perp;
+    
+    shin_points[2].x = ankle_x + dx_perp;
+    shin_points[2].y = ankle_y - dy_perp;
+    
+    shin_points[3].x = ankle_x - dx_perp;
+    shin_points[3].y = ankle_y + dy_perp;
+    
+    // Calculate foot points
+    SDL_Point foot_points[4];
+    float foot_angle = shin_angle - M_PI/2; // Perpendicular to shin
+    
+    int foot_dx = (int)(FOOT_LENGTH * cos(foot_angle));
+    int foot_dy = (int)(FOOT_LENGTH * sin(foot_angle));
+    
+    foot_points[0].x = ankle_x - (int)(half_width * cos(shin_angle));
+    foot_points[0].y = ankle_y + (int)(half_width * sin(shin_angle));
+    
+    foot_points[1].x = ankle_x + (int)(half_width * cos(shin_angle));
+    foot_points[1].y = ankle_y - (int)(half_width * sin(shin_angle));
+    
+    foot_points[2].x = foot_points[1].x + foot_dx;
+    foot_points[2].y = foot_points[1].y + foot_dy;
+    
+    foot_points[3].x = foot_points[0].x + foot_dx;
+    foot_points[3].y = foot_points[0].y + foot_dy;
+    
+    // Draw blueprint background grid
+    SDL_SetRenderDrawColor(renderer, 50, 50, 80, 255); // Dark blue-ish grid
+    
+    // Draw vertical grid lines
+    for (int x = 0; x < SCREEN_WIDTH; x += 50) {
+        SDL_RenderDrawLine(renderer, x, 0, x, SCREEN_HEIGHT);
+    }
+    
+    // Draw horizontal grid lines
+    for (int y = 0; y < SCREEN_HEIGHT; y += 50) {
+        SDL_RenderDrawLine(renderer, 0, y, SCREEN_WIDTH, y);
+    }
+    
+    // Draw thigh outline (blueprint style)
+    SDL_SetRenderDrawColor(renderer, 100, 180, 255, 255); // Light blue for blueprint
+    
+    // Draw thigh rectangle
+    SDL_RenderDrawLine(renderer, thigh_points[0].x, thigh_points[0].y, thigh_points[1].x, thigh_points[1].y);
+    SDL_RenderDrawLine(renderer, thigh_points[1].x, thigh_points[1].y, thigh_points[2].x, thigh_points[2].y);
+    SDL_RenderDrawLine(renderer, thigh_points[2].x, thigh_points[2].y, thigh_points[3].x, thigh_points[3].y);
+    SDL_RenderDrawLine(renderer, thigh_points[3].x, thigh_points[3].y, thigh_points[0].x, thigh_points[0].y);
+    
+    // Draw internal structure lines for thigh (mechanical details)
+    int mid_thigh_x = (origin_x + knee_x) / 2;
+    int mid_thigh_y = (origin_y + knee_y) / 2;
+    SDL_RenderDrawLine(renderer, mid_thigh_x - dx_perp, mid_thigh_y + dy_perp, mid_thigh_x + dx_perp, mid_thigh_y - dy_perp);
+    
+    // Draw shin outline
+    SDL_RenderDrawLine(renderer, shin_points[0].x, shin_points[0].y, shin_points[1].x, shin_points[1].y);
+    SDL_RenderDrawLine(renderer, shin_points[1].x, shin_points[1].y, shin_points[2].x, shin_points[2].y);
+    SDL_RenderDrawLine(renderer, shin_points[2].x, shin_points[2].y, shin_points[3].x, shin_points[3].y);
+    SDL_RenderDrawLine(renderer, shin_points[3].x, shin_points[3].y, shin_points[0].x, shin_points[0].y);
+    
+    // Draw internal structure lines for shin (mechanical details)
+    int mid_shin_x = (knee_x + ankle_x) / 2;
+    int mid_shin_y = (knee_y + ankle_y) / 2;
+    SDL_RenderDrawLine(renderer, mid_shin_x - dx_perp, mid_shin_y + dy_perp, mid_shin_x + dx_perp, mid_shin_y - dy_perp);
+    
+    // Draw foot
+    SDL_RenderDrawLine(renderer, foot_points[0].x, foot_points[0].y, foot_points[1].x, foot_points[1].y);
+    SDL_RenderDrawLine(renderer, foot_points[1].x, foot_points[1].y, foot_points[2].x, foot_points[2].y);
+    SDL_RenderDrawLine(renderer, foot_points[2].x, foot_points[2].y, foot_points[3].x, foot_points[3].y);
+    SDL_RenderDrawLine(renderer, foot_points[3].x, foot_points[3].y, foot_points[0].x, foot_points[0].y);
+    
+    // Draw foot internal structure (arch support)
+    int mid_foot_x = (foot_points[0].x + foot_points[2].x) / 2;
+    int mid_foot_y = (foot_points[0].y + foot_points[2].y) / 2;
+    SDL_RenderDrawLine(renderer, ankle_x, ankle_y, mid_foot_x, mid_foot_y);
+    
+    // Draw hip joint (circle)
+    SDL_SetRenderDrawColor(renderer, 200, 220, 255, 255); // Lighter blue for joints
+    for (int i = -HIP_RADIUS; i <= HIP_RADIUS; i++) {
+        for (int j = -HIP_RADIUS; j <= HIP_RADIUS; j++) {
+            if (i*i + j*j <= HIP_RADIUS*HIP_RADIUS && i*i + j*j >= (HIP_RADIUS-2)*(HIP_RADIUS-2)) {
                 SDL_RenderDrawPoint(renderer, origin_x + i, origin_y + j);
-                SDL_RenderDrawPoint(renderer, joint2_x + i, joint2_y + j);
-                SDL_RenderDrawPoint(renderer, end_x + i, end_y + j);
+            }
+        }
+    }
+    
+    // Draw knee joint (circle with mechanical details)
+    for (int i = -KNEE_RADIUS; i <= KNEE_RADIUS; i++) {
+        for (int j = -KNEE_RADIUS; j <= KNEE_RADIUS; j++) {
+            if (i*i + j*j <= KNEE_RADIUS*KNEE_RADIUS && i*i + j*j >= (KNEE_RADIUS-2)*(KNEE_RADIUS-2)) {
+                SDL_RenderDrawPoint(renderer, knee_x + i, knee_y + j);
+            }
+        }
+    }
+    
+    // Draw crosshairs in the knee joint
+    SDL_RenderDrawLine(renderer, knee_x - KNEE_RADIUS, knee_y, knee_x + KNEE_RADIUS, knee_y);
+    SDL_RenderDrawLine(renderer, knee_x, knee_y - KNEE_RADIUS, knee_x, knee_y + KNEE_RADIUS);
+    
+    // Draw ankle joint
+    for (int i = -KNEE_RADIUS/1.5; i <= KNEE_RADIUS/1.5; i++) {
+        for (int j = -KNEE_RADIUS/1.5; j <= KNEE_RADIUS/1.5; j++) {
+            if (i*i + j*j <= (KNEE_RADIUS/1.5)*(KNEE_RADIUS/1.5) && i*i + j*j >= (KNEE_RADIUS/1.5-2)*(KNEE_RADIUS/1.5-2)) {
+                SDL_RenderDrawPoint(renderer, ankle_x + i, ankle_y + j);
             }
         }
     }
@@ -161,10 +294,10 @@ void render_simulation(int frame) {
     int bar_width = 50;
     int bar_height = 10;
     
-    // Torque 1 indicator
+    // Torque 1 indicator (hip joint)
     SDL_Rect tau1_rect = {
         origin_x - bar_width/2,
-        origin_y + 15,
+        origin_y + 20,
         (int)(bar_width * fabs(current->tau1) / 50.0), // Scale to reasonable size
         bar_height
     };
@@ -178,22 +311,49 @@ void render_simulation(int frame) {
     }
     SDL_RenderFillRect(renderer, &tau1_rect);
     
-    // Torque 2 indicator
+    // Torque 2 indicator (knee joint)
     SDL_Rect tau2_rect = {
-        joint2_x - bar_width/2,
-        joint2_y + 15,
+        knee_x - bar_width/2,
+        knee_y + 20,
         (int)(bar_width * fabs(current->tau2) / 50.0), // Scale to reasonable size
         bar_height
     };
     
     if (current->tau2 >= 0) {
         SDL_SetRenderDrawColor(renderer, 50, 255, 50, 255); // Green for positive
-        tau2_rect.x = joint2_x;
+        tau2_rect.x = knee_x;
     } else {
         SDL_SetRenderDrawColor(renderer, 255, 50, 50, 255); // Red for negative
-        tau2_rect.x = joint2_x - tau2_rect.w;
+        tau2_rect.x = knee_x - tau2_rect.w;
     }
     SDL_RenderFillRect(renderer, &tau2_rect);
+
+    // Add blueprint labels
+    SDL_SetRenderDrawColor(renderer, 200, 220, 255, 255); // Light blue for text
+    
+    // Label for hip joint
+    char hip_label[] = "HIP JOINT";
+    int label_x = origin_x - 40;
+    int label_y = origin_y - 25;
+    for (size_t i = 0; i < strlen(hip_label); i++) {
+        SDL_RenderDrawLine(renderer, label_x + i*8, label_y, label_x + i*8 + 5, label_y);
+    }
+    
+    // Label for knee joint
+    char knee_label[] = "KNEE JOINT";
+    label_x = knee_x - 45;
+    label_y = knee_y - 25;
+    for (size_t i = 0; i < strlen(knee_label); i++) {
+        SDL_RenderDrawLine(renderer, label_x + i*8, label_y, label_x + i*8 + 5, label_y);
+    }
+    
+    // Label for ankle joint
+    char ankle_label[] = "ANKLE";
+    label_x = ankle_x - 25;
+    label_y = ankle_y - 20;
+    for (size_t i = 0; i < strlen(ankle_label); i++) {
+        SDL_RenderDrawLine(renderer, label_x + i*8, label_y, label_x + i*8 + 5, label_y);
+    }
 
     // Draw data text in top-left corner
     char data_text[512];
