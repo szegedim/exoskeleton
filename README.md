@@ -51,3 +51,5 @@ gcc standalone.c -o standalone -lSDL2 -lm $(sdl2-config --cflags --libs)
 
 ## License
 This project is licensed under Creative Commons CC0. To the extent possible under law, the author(s) have dedicated all copyright and related and neighboring rights to this document to the public domain worldwide. This document is distributed without any warranty.
+
+[https://x.com/szegedi_mi54955/status/1926427056226632166](https://x.com/szegedi_mi54955/status/1926427056226632166)
