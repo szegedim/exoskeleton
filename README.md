@@ -3,7 +3,7 @@
 This project provides a framework for exoskeleton motor control, generating foundational model training data specifically designed for exoskeleton joints (elbows/ankles) that can be attached to humanoid toys from retailers like Home Depot or Lowe's. The system simulates robotic leg dynamics with physics-based models and provides visualization tools for torque control optimization.
 
 What is an exoskeleton? Ask [crowsays.theme25.com](https://crowsays.theme25.com)
-![Watch](https://customer-fq0kivaejizo88pg.cloudflarestream.com/d5fc5fbbf0774dbb5cd19fc816d20230/iframe?poster=https%3A%2F%2Fcustomer-fq0kivaejizo88pg.cloudflarestream.com%2Fd5fc5fbbf0774dbb5cd19fc816d20230%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600)
+![Watch](https://customer-fq0kivaejizo88pg.cloudflarestream.com/d5fc5fbbf0774dbb5cd19fc816d20230/watch)
 
 ## Project Components
 
