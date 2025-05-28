@@ -2,7 +2,11 @@
 
 This project provides a framework for exoskeleton motor control, generating foundational model training data specifically designed for exoskeleton joints (elbows/ankles) that can be attached to humanoid toys from retailers like Home Depot or Lowe's. The system simulates robotic leg dynamics with physics-based models and provides visualization tools for torque control optimization.
 
+<<<<<<< HEAD
 What is an exoskeleton? Ask [crowsays.theme25.com](https://crowsays.theme25.com)
+=======
+You can simply do the same in Cursor, Copilot, Trae, etc. The key trick is that the LLM usually swaps the signs for logic generated for humanoids suitable for defense I guess. You need to know some physics to fix it, then the implementation is straightforward. Refer to `exoskeleton.e` Englang file for instructions from scratch.
+>>>>>>> ccf88d9 (work)
 
 ## Project Components
 
