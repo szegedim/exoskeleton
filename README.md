@@ -1,5 +1,7 @@
 # Exoskeleton Motor Control Project
 
+🏆 This project was the winner #1 at Cerebras & OpenRouter Qwen 3 Hackathon [https://lu.ma/3iy18vm7](https://lu.ma/3iy18vm7)
+
 This project provides a framework for exoskeleton motor control, generating foundational model training data specifically designed for exoskeleton joints (elbows/ankles) that can be attached to humanoid toys from retailers like Home Depot or Lowe's. The system simulates robotic leg dynamics with physics-based models and provides visualization tools for torque control optimization.
 
 What is an exoskeleton? Ask [crowsays.theme25.com](https://crowsays.theme25.com)
